@@ -77,60 +77,158 @@ public class LS extends javax.swing.JFrame {
 	jB = new Button[SIZE][SIZE];
 	for (int i=0; i<SIZE; i++) {
 	    for (int j=0; j<SIZE; j++) {
-		// Create a new button and add an actionListerner to it
-		jB[i][j] = new Button(i,j);
-		// Add an action listener to the button to handle mouse clicks
-		jB[i][j].addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent act) {
-			    jBAction(act);
-			}
-		    });
-		add(jB[i][j]);   // Add the buttons to the GridLayout
-		
-		board[i][j] = EMPTY;     // Initialize all marks on the board to empty
+            // Create a new button and add an actionListerner to it
+            jB[i][j] = new Button(i, j);
+            // Add an action listener to the button to handle mouse clicks
+            jB[i][j].addActionListener(new java.awt.event.ActionListener() {
+                public void actionPerformed(java.awt.event.ActionEvent act) {
+                    jBAction(act);
+                }
+            });
+            add(jB[i][j]);   // Add the buttons to the GridLayout
+
+            board[i][j] = EMPTY;     // Initialize all marks on the board to empty
 	    }
-	}
-	// Pack the GridLayout and make it visible
-	pack();
+    }
+    // Pack the GridLayout and make it visible
+    pack();
     }
 
     // Action listener which handles mouse clicks on the buttons
     private void jBAction(java.awt.event.ActionEvent act) {
-	Button thisButton = (Button) act.getSource();   // Get the button clicked on
-	// Get the grid coordinates of the clicked button
-	int i = thisButton.get_i();
-	int j = thisButton.get_j();
-	System.out.println("Button[" + i + "][" + j + "] was clicked by " + turn);  // DEBUG
+        Button thisButton = (Button) act.getSource();   // Get the button clicked on
+        // Get the grid coordinates of the clicked button
+        int i = thisButton.get_i();
+        int j = thisButton.get_j();
+        System.out.println("Button[" + i + "][" + j + "] was clicked by " + turn);  // DEBUG
 
-	// Check if this square is empty.
-	// If it is empty then place a HUMAN mark (X) in it and check if it was a winning move
+        // Check if this square is empty.
+        if (board[i][j] != EMPTY){
+            return;
+        }
 
-	// In this version no checks are done, the marks just alter between HUMAN and COMPUTER
-	
-	// Set an X or O mark in the clicked button
-	if (turn == HUMAN) {
-	    thisButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("X.png")));
-	}
-	if (turn == COMPUTER) {
-	    thisButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("O.png")));
-	}
-	place (i, j, turn);    // Mark the move on the board
+        // If it is empty then place a HUMAN mark (X) in it and check if it was a winning move
+        // In this version no checks are done, the marks just alter between HUMAN and COMPUTER
 
-	// Give the turn to the opponent
-	turn = (turn == HUMAN) ? COMPUTER : HUMAN;
-	// In a real game, you should instead call a method and compute the response move of the computer
-	// The computer chooses a successor position with a maximal value
-	
-	// Check if we are done (that is COMPUTER or HUMAN wins)
-	if (checkResult() != CONTINUE) {
-	    return;
-	}
+        // Set an X or O mark in the clicked button
+        if (turn == HUMAN) {
+            thisButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("X.png")));
+        }
+        if (turn == COMPUTER) {
+            thisButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("O.png")));
+        }
+        place (i, j, turn);    // Mark the move on the board
+
+        // Give the turn to the opponent
+        turn = (turn == HUMAN) ? COMPUTER : HUMAN;
+        // In a real game, you should instead call a method and compute the response move of the computer
+        // The computer chooses a successor position with a maximal value
+
+        if (turn == COMPUTER){computerMove();}
+
+        // Check if we are done (that is COMPUTER or HUMAN wins)
+        if (checkResult() != CONTINUE) {
+            handleGameOver(checkResult());
+        }
     }
 
     private int checkResult() {
-	// This function should check if one player (HUMAN or COMPUTER) wins, if the board is full (DRAW)
-	// or if the game should continue. You implement this.
-	return CONTINUE;
+	    // This function should check if one player (HUMAN or COMPUTER) wins
+        // if the board is full (DRAW)
+	    // or if the game should continue. You implement this.
+
+        // Check rows
+        for (int i = 0; i < SIZE; i++) {
+            if (board[i][0] != EMPTY &&
+                    board[i][0] == board[i][1] &&
+                    board[i][0] == board[i][2]) {
+                return board[i][0] == HUMAN ? HUMAN_WIN : COMPUTER_WIN;
+            }
+        }
+
+        // Check columns
+        for (int j = 0; j < SIZE; j++) {
+            if (board[0][j] != EMPTY &&
+                    board[0][j] == board[1][j] &&
+                    board[0][j] == board[2][j]) {
+                return board[0][j] == HUMAN ? HUMAN_WIN : COMPUTER_WIN;
+            }
+        }
+
+        // Check main diagonal (top-left to bottom-right)
+        if (board[1][1] != EMPTY &&
+                board[0][0] == board[1][1] &&
+                board[1][1] == board[2][2]) {
+            return board[1][1] == HUMAN ? HUMAN_WIN : COMPUTER_WIN;
+        }
+
+        // Check anti-diagonal (top-right to bottom-left)
+        if (board[1][1] != EMPTY &&
+                board[0][2] == board[1][1] &&
+                board[1][1] == board[2][0]) {
+            return board[1][1] == HUMAN ? HUMAN_WIN : COMPUTER_WIN;
+        }
+
+        // Check if board is full
+        for (int i = 0; i < SIZE; i++){
+            for (int j = 0; j < SIZE; j++){
+                if (board[i][j] == EMPTY){
+                    return CONTINUE;
+                }
+            }
+        }
+
+	    return DRAW;
+    }
+
+    private void handleGameOver(int result){
+
+        String message = "";
+
+        switch (result) {
+            case HUMAN_WIN:
+                message = "You won!";
+                break;
+            case COMPUTER_WIN:
+                message = "The computer won!";
+                break;
+            case DRAW:
+                message = "Draw!";
+                break;
+        }
+
+        System.out.println(message);
+        JOptionPane.showMessageDialog(this, message, "Game over",
+                JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void computerMove(){}
+
+    private Move minMax(int player){
+        int result = checkResult();
+        int value;
+        Move bestMove;
+
+        /* Undersök först terminala positiner */
+        if ()
+        else /* Undersök icke-terminala positiner */
+            {
+                value = COMP_LOSS; /* Börja med minsta värde */
+                for (i = 1; i < 9; i++) /* Kolla alla rutor */ {
+                    if (isEmpty(i)) /* Välj en tom ruta */ {
+                        place(i, COMP); /* Undersök den */
+                        responseValue = findHumanMove().value;
+                        unplace(i); /* Återställ brädet */
+                        if (responseValue > value) { /* Uppdatera bästa draget */
+                            value = responseValue;
+                            bestMove = i;
+                        }
+                    }
+                }
+            }
+            return new MoveInfo(bestmove, value);
+
+
     }
     
     // Place a mark for one of the playsers (HUMAN or COMPUTER) in the specified position
