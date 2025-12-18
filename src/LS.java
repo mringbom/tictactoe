@@ -96,11 +96,14 @@ public class LS extends javax.swing.JFrame {
 
     // Action listener which handles mouse clicks on the buttons
     private void jBAction(java.awt.event.ActionEvent act) {
+
+        if (turn != HUMAN) return;
+
         Button thisButton = (Button) act.getSource();   // Get the button clicked on
         // Get the grid coordinates of the clicked button
         int i = thisButton.get_i();
         int j = thisButton.get_j();
-        System.out.println("Button[" + i + "][" + j + "] was clicked by " + turn);  // DEBUG
+        System.out.println("Button[" + i + "][" + j + "] was clicked");  // DEBUG
 
         // Check if this square is empty.
         if (board[i][j] != EMPTY){
@@ -110,26 +113,21 @@ public class LS extends javax.swing.JFrame {
         // If it is empty then place a HUMAN mark (X) in it and check if it was a winning move
         // In this version no checks are done, the marks just alter between HUMAN and COMPUTER
 
-        // Set an X or O mark in the clicked button
-        if (turn == HUMAN) {
-            thisButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("X.png")));
-        }
-        if (turn == COMPUTER) {
-            thisButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("O.png")));
-        }
-        place (i, j, turn);    // Mark the move on the board
-
-        // Give the turn to the opponent
-        turn = (turn == HUMAN) ? COMPUTER : HUMAN;
-        // In a real game, you should instead call a method and compute the response move of the computer
-        // The computer chooses a successor position with a maximal value
-
-        if (turn == COMPUTER){computerMove();}
+        // Set an X mark in the clicked button
+        thisButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("X.png")));
+        System.out.println("Human placed X at [" + i + "][" + j + "]");
+        place (i, j, HUMAN);    // Mark the move on the board
 
         // Check if we are done (that is COMPUTER or HUMAN wins)
         if (checkResult() != CONTINUE) {
             handleGameOver(checkResult());
+            return;
         }
+
+        turn = COMPUTER;
+        // The computer chooses a successor position with a maximal value
+        computerMove();
+
     }
 
     private int checkResult() {
@@ -202,35 +200,78 @@ public class LS extends javax.swing.JFrame {
                 JOptionPane.INFORMATION_MESSAGE);
     }
 
-    private void computerMove(){}
+    private void computerMove() {
+        if (checkResult() != CONTINUE) return;
 
-    private Move minMax(int player){
-        int result = checkResult();
-        int value;
-        Move bestMove;
+        Move best = minimax(COMPUTER);
+        System.out.println("Computer placed 0 at [" + best.row + "][" + best.col + "]");
 
-        /* Undersök först terminala positiner */
-        if ()
-        else /* Undersök icke-terminala positiner */
-            {
-                value = COMP_LOSS; /* Börja med minsta värde */
-                for (i = 1; i < 9; i++) /* Kolla alla rutor */ {
-                    if (isEmpty(i)) /* Välj en tom ruta */ {
-                        place(i, COMP); /* Undersök den */
-                        responseValue = findHumanMove().value;
-                        unplace(i); /* Återställ brädet */
-                        if (responseValue > value) { /* Uppdatera bästa draget */
-                            value = responseValue;
-                            bestMove = i;
+        if (best.row == -1 || best.col == -1) return;
+
+        // Set a 0 mark in the clicked button
+        jB[best.row][best.col].setIcon(new ImageIcon(getClass().getResource("O.png")));
+        place(best.row, best.col, COMPUTER);
+
+        // IMPORTANT: after computer move, give turn back to human
+        turn = HUMAN;
+
+        // Check game over after computer move
+        int res = checkResult();
+        if (res != CONTINUE) handleGameOver(res);
+    }
+
+
+    private int terminalScore() {
+        int res = checkResult();
+        if (res == COMPUTER_WIN) return 10;
+        if (res == HUMAN_WIN) return -10;
+        if (res == DRAW) return 0;
+        return Integer.MIN_VALUE; // "not terminal"
+    }
+
+    private Move minimax(int currentPlayer) {
+        int tScore = terminalScore();
+        if (tScore != Integer.MIN_VALUE) {
+            // terminal state: no move to make, only a value matters
+            return new Move(tScore, -1, -1);
+        }
+
+        Move best;
+        if (currentPlayer == COMPUTER) {
+            best = new Move(Integer.MIN_VALUE, -1, -1); // maximize
+            for (int r = 0; r < SIZE; r++) {
+                for (int c = 0; c < SIZE; c++) {
+                    if (board[r][c] == EMPTY) {
+                        board[r][c] = COMPUTER;
+                        Move reply = minimax(HUMAN);
+                        board[r][c] = EMPTY;
+
+                        if (reply.val > best.val) {
+                            best = new Move(reply.val, r, c);
                         }
                     }
                 }
             }
-            return new MoveInfo(bestmove, value);
+        } else {
+            best = new Move(Integer.MAX_VALUE, -1, -1); // minimize
+            for (int r = 0; r < SIZE; r++) {
+                for (int c = 0; c < SIZE; c++) {
+                    if (board[r][c] == EMPTY) {
+                        board[r][c] = HUMAN;
+                        Move reply = minimax(COMPUTER);
+                        board[r][c] = EMPTY;
 
-
+                        if (reply.val < best.val) {
+                            best = new Move(reply.val, r, c);
+                        }
+                    }
+                }
+            }
+        }
+        return best;
     }
-    
+
+
     // Place a mark for one of the playsers (HUMAN or COMPUTER) in the specified position
     public void place (int row, int col, int player){
 	board [row][col] = player;
